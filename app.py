@@ -70,6 +70,10 @@ def api_register():
     pw_receive = request.form["pw_give"]
     nickname_receive = request.form["nickname_give"]
 
+    # check if id already exists
+    if bool(db.user.find_one({"id": id_receive})):
+        return jsonify({"result": "fail", "msg": "Id already exists"})
+
     pw_hash = hashlib.sha256(pw_receive.encode("utf-8")).hexdigest()
 
     db.user.insert_one({"id": id_receive, "pw": pw_hash, "nick": nickname_receive})
