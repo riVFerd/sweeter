@@ -1,70 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title>Hello, world!</title>
-    <meta charset="utf-8" />
+<head>
+    <title>Log In | SWEETER</title>
+    <meta charset="utf-8"/>
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+            name="viewport"
+            content="width=device-width, initial-scale=1, shrink-to-fit=no"
     />
 
     <!-- Bulma CSS -->
     <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css"
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css"
     />
+    <!-- Font Awesome CSS -->
+    <link
+            href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css"
+            rel="stylesheet"
+    />
+
     <!-- JS -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
 
     <script>
-      {% if msg %}
-          alert("{{ msg }}")
-      {% endif %}
-            // Mari belajar sedikit tentang apa itu cookie browser
+        // {% if msg %}
+        //     alert("{{ msg }}")
+        // {% endif %}
+        function sign_in() {
+            $.ajax({
+                type: "POST",
+                url: "/sign_in",
+                data: {
+                    username_give: $('#username').val(),
+                    password_give: $('#userpw').val(),
+                },
+                success: function (response) {
+                    if (response["result"] === "success") {
+                        $.cookie("mytoken", response["token"], {path: "/"});
 
-            // Untuk melacak user yang sudah log in,
-            // developer biasanya menggunakan cookie browser untuk
-            // menahan token user diantara beberapa request
+                        alert("Login complete!");
+                        window.location.href = "/";
+                    } else {
+                        alert(response["msg"]);
+                    }
+                },
+            });
+        }
 
-            // anda bisa membayangkan cookie seperti dictionary
-            // python (pasangan key value) tetapi cookie
-            // diciptakan untuk browser
+        function sign_up() {
+            let username = $('#username').val();
+            let password = $('#userpw').val();
+            let password2 = "";
 
-            // anda memiliki kontrol kapan dan bagaimana menghapus
-            // cookie browser ketika browser anda ditutup
-      function login() {
-          $.ajax({
-              type: "POST",
-              url: "/api/login",
-              data: {id_give: $('#userid').val(), pw_give: $('#userpw').val()},
-              success: function (response) {
-                  if (response['result'] === 'success') {
-                      // If the login process is successful,
-                      // we receive a JWT token from the
-                      // server, and then save that token
-                      // in our browser cookies
-                      $.cookie('mytoken', response['token']);
-
-                      alert('Login complete!')
-                      window.location.href = '/'
-                  } else {
-                      // If the login process is unsuccessful,
-                      // show the user an error message
-                      alert(response['msg'])
-                  }
-              }
-          })
-      }
+            $.ajax({
+                type: "POST",
+                url: "/sign_up/save",
+                data: {
+                    username_give: username,
+                    password_give: password,
+                },
+                success: function (response) {
+                    alert("You are registered! Nice!");
+                    window.location.replace("/login");
+                },
+            });
+        }
     </script>
-  </head>
-  <body>
+</head>
+<body>
     <div class="section has-text-centered">
       <h1 class="title">Login Page</h1>
       <div class="container" style="width: 60%">
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label" for="userid">ID</label>
+            <label class="label" for="username">Username</label>
           </div>
           <div class="field-body">
             <div class="field">
@@ -72,9 +82,9 @@
                 <input
                   type="text"
                   class="input"
-                  id="userid"
+                  id="username"
                   aria-describedby="emailHelp"
-                  placeholder="My ID"
+                  placeholder="Username"
                 />
               </div>
             </div>
@@ -82,7 +92,7 @@
         </div>
         <div class="field is-horizontal">
           <div class="field-label is-normal">
-            <label class="label" for="userpw">PW</label>
+            <label class="label" for="userpw">Password</label>
           </div>
           <div class="field-body">
             <div class="field">
@@ -97,9 +107,9 @@
             </div>
           </div>
         </div>
-        <button class="button is-primary" onclick="login()">Login</button>
-        <a class="button is-primary is-outlined" href="/register">Register</a>
+        <button class="button is-primary" onclick="sign_in()">Login</button>
+        <button class="button is-primary is-outlined" onclick="sign_up()">Register</button>
       </div>
     </div>
-  </body>
+</body>
 </html>

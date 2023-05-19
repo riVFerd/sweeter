@@ -1,47 +1,52 @@
-import certifi
-from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+from pymongo import MongoClient
+import jwt
+# import datetime
+import hashlib
+from flask import Flask, render_template, jsonify, request, redirect, url_for
+from werkzeug.utils import secure_filename
+from datetime import datetime, timedelta
+
 
 app = Flask(__name__)
+app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.config["UPLOAD_FOLDER"] = "./static/profile_pics"
 
-from pymongo import MongoClient
-
-MONGODB_CONNECTION_STRING = "mongodb+srv://riVFerd:test_mongodb@cluster0.rq9u845.mongodb.net/?retryWrites=true&w=majority"
-client = MongoClient(MONGODB_CONNECTION_STRING, tlsCAFile=certifi.where())
-db = client.dbsparta
-
-# Ini merupakan string rahasia yang perlu anda buat 
-# token JWT. Anda bisa memasukkan apapun yang anda mau ke sini .
-# Karena string ini disimpan di server,
-# anda bisa melakukan proses encode/decode tokens hanya pada server ini.
 SECRET_KEY = "SPARTA"
 
-# Kita akan menggunakan module python untuk membutat JWT token kita
-import jwt
-
-# kita perlu module datetime untuk mengatur tanggal expired untuk token kita
-import datetime
-
-# Ketika seorang member mendaftar untuk layanan anda,
-# sebaiknya anda mengenkripsi passwordnya sebelum menyimpannya di database,
-# jika tidak seluruh developer anda bisa melihat (dan menggunakan)
-# akun member anda
-import hashlib
+MONGODB_CONNECTION_STRING = "mongodb+srv://riVFerd:test_mongodb@cluster0.rq9u845.mongodb.net/?retryWrites=true&w=majority"
+client = MongoClient(MONGODB_CONNECTION_STRING)
+db = client.dbsparta
 
 
-#################################
-## HTML-related API endpoints  ##
-#################################
 @app.route("/")
 def home():
     token_receive = request.cookies.get("mytoken")
     try:
         payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
-        user_info = db.user.find_one({"id": payload["id"]})
-        return render_template("index.html", nickname=user_info["nick"])
+
+        return render_template("index.html")
     except jwt.ExpiredSignatureError:
-        return redirect(url_for("login", msg="Your login token has expired"))
+        return redirect(url_for("login", msg="Your token has expired"))
     except jwt.exceptions.DecodeError:
-        return redirect(url_for("login", msg="There was an issue logging you in"))
+        return redirect(url_for("login", msg="There was problem logging you in"))
+
+
+@app.route("/about")
+def about():
+    return render_template("about.html")
+
+
+@app.route("/secret")
+def secret():
+    token_receive = request.cookies.get("mytoken")
+    try:
+        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
+
+        return render_template("secret.html")
+    except jwt.ExpiredSignatureError:
+        return redirect(url_for("login", msg="Your token has expired"))
+    except jwt.exceptions.DecodeError:
+        return redirect(url_for("login", msg="There was problem logging you in"))
 
 
 @app.route("/login")
@@ -50,117 +55,104 @@ def login():
     return render_template("login.html", msg=msg)
 
 
-@app.route("/register")
-def register():
-    return render_template("register.html")
+@app.route("/user/<username>")
+def user(username):
+    # an endpoint for retrieving a user's profile information
+    # and all of their posts
+    token_receive = request.cookies.get("mytoken")
+    try:
+        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
+        # if this is my own profile, True
+        # if this is somebody else's profile, False
+        status = username == payload["id"]
+
+        user_info = db.users.find_one({"username": username}, {"_id": False})
+        return render_template("user.html", user_info=user_info, status=status)
+    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
+        return redirect(url_for("home"))
 
 
-#################################
-## Login related API endpoints ##
-#################################
+@app.route("/sign_in", methods=["POST"])
+def sign_in():
+    username_receive = request.form["username_give"]
+    password_receive = request.form["password_give"]
 
-# [Signup API]
-# Kita akan menerima data id, password, dan nickname dari
-# user dan menyimpannya di MongoDb
-# Sebelum menyimpan passwordnya, kita pertama-tama akan mengenkripsinya 
-# menggunakan fungsi hashing SHA256  
-@app.route("/api/register", methods=["POST"])
-def api_register():
-    id_receive = request.form["id_give"]
-    pw_receive = request.form["pw_give"]
-    nickname_receive = request.form["nickname_give"]
+    pw_hash = hashlib.sha256(password_receive.encode("utf-8")).hexdigest()
 
-    # check if id already exists
-    if bool(db.user.find_one({"id": id_receive})):
-        return jsonify({"result": "fail", "msg": "Id already exists"})
+    result = db.user.find_one({"username": username_receive, "password": pw_hash})
 
-    pw_hash = hashlib.sha256(pw_receive.encode("utf-8")).hexdigest()
-
-    db.user.insert_one({"id": id_receive, "pw": pw_hash, "nick": nickname_receive})
-
-    return jsonify({"result": "success"})
-
-
-# [Login Endpoint API]
-# Kita menerima id dan password dari user,
-# dan kemudian mengeluarkan sebuah token JWT untuk mereka gunakan 
-@app.route("/api/login", methods=["POST"])
-def api_login():
-    id_receive = request.form["id_give"]
-    pw_receive = request.form["pw_give"]
-
-    # Kita akan mengenkripsi passwordnya disini dengan 
-    # cara yang sama seperti user pertama kali mendaftar untuk layanan web
-
-    pw_hash = hashlib.sha256(pw_receive.encode("utf-8")).hexdigest()
-
-    # kita menggunakan id user dan password yang terenkripsi untuk
-    # mencari user tersebut di database
-    result = db.user.find_one({"id": id_receive, "pw": pw_hash})
-
-    # Jika kita bisa menemukan user tersebut, kita membuat
-    # Tokej JWT baru untuk mereka 
     if result is not None:
-        # Untuk menghasilkan token JWT, kita perlu 
-        # suatu "payload" dan "kunci rahasia"
 
-        # "kunci rahasia" diperlukan untuk mendekripsi 
-        # token dan melihat payload 
-
-        # payload dibawah membawa id user dan tanggal expired token, 
-        # artinya anda jika anda dekripsi tokennya, anda  
-        # bisa tau id user 
-
-        # jika kita mengatur "exp" tanggal expired, lalu suatu errror 
-        # muncul ketika kita mencoba dekripsi tokennya menggunakan 
-        # kunci rahasia ketika token telah expired. Ini merupakan hal bagus! 
         payload = {
-            "id": id_receive,
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5),
+            "id": username_receive,
+            "exp": datetime.utcnow() + timedelta(minutes=5),
         }
         token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
-        # mengembalikan token ke client
         return jsonify({"result": "success", "token": token})
-    # Jika kita tidak bisa menemukan user di database,
-    # kita bisa menangani kasus tersebut disini 
     else:
         return jsonify({"result": "fail", "msg": "Either your email or your password is incorrect"})
 
 
-# [Endpoint API verifikasi informasi user]
-# Ini merupakan endpoint API yang hanya bisa
-# menerima request dari user terotentikasi
-# Anda hanya perlu memasukkan token yang valid
-# pada request anda untuk mendapatkan akses ke
-# Endpoint API ini. Sistem ini wajar karena
-# beberapa informasi sebaiknya private untuk setiap user
-# (contoh. shopping cart atau data akun user)
-@app.route("/api/nick", methods=["GET"])
-def api_valid():
+@app.route("/sign_up/save", methods=["POST"])
+def sign_up():
+    # an api endpoint for signing up
+    username_receive = request.form["username_give"]
+    password_receive = request.form["password_give"]
+    password_hash = hashlib.sha256(password_receive.encode("utf-8")).hexdigest()
+    # we should save the user to the database
+    db.user.insert_one({"username": username_receive, "password": password_hash})
+    return jsonify({"result": "success"})
+
+
+@app.route("/sign_up/check_dup", methods=["POST"])
+def check_dup():
+    # ID we should check whether or not the id is already taken
+    return jsonify({"result": "success"})
+
+
+@app.route("/update_profile", methods=["POST"])
+def save_img():
     token_receive = request.cookies.get("mytoken")
-
-    # apakah anda sudah melihat pernyataan try/catch sebelumnya?
     try:
-        # kita akan coba decode tokennya dengan kunci rahasia
         payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
-        # jika tidak ada masalah, kita seharusnya melihat
-        # payload terdekripsi muncul di terminal kita!
-        print(payload)
+        # WKita update profil user disini
+        return jsonify({"result": "success", "msg": "Your profile has been updated"})
+    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
+        return redirect(url_for("home"))
 
-        # payload terdekripsinya seharusnya berisi id user
-        # kita bisa menggunakan id ini untuk mencari data user
-        # dari database dan mengembalikannya ke user
-        userinfo = db.user.find_one({"id": payload["id"]}, {"_id": 0})
-        return jsonify({"result": "success", "nickname": userinfo["nick"]})
-    except jwt.ExpiredSignatureError:
-        # jika anda mencoba untuk mendekripsi token yang sudah expired
-        # anda akan mendapatkan error khusus, kita menangani error nya disini
-        return jsonify({"result": "fail", "msg": "Your token has expired"})
-    except jwt.exceptions.DecodeError:
-        # jika ada permasalahan lain ketika proses decoding,
-        # kita akan tangani di sini
-        return jsonify({"result": "fail", "msg": "There was an error while logging you in"})
+
+@app.route("/posting", methods=["POST"])
+def posting():
+    token_receive = request.cookies.get("mytoken")
+    try:
+        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
+        # Kita buat  post baru disini
+        return jsonify({"result": "success", "msg": "Posting successful!"})
+    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
+        return redirect(url_for("home"))
+
+
+@app.route("/get_posts", methods=["GET"])
+def get_posts():
+    token_receive = request.cookies.get("mytoken")
+    try:
+        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
+        # Kita mengambil daftar lengkap post disini
+        return jsonify({"result": "success", "msg": "Successful fetched all posts"})
+    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
+        return redirect(url_for("home"))
+
+
+@app.route("/update_like", methods=["POST"])
+def update_like():
+    token_receive = request.cookies.get("mytoken")
+    try:
+        payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
+        # Kita mengganti hitungan like suatu post disini
+        return jsonify({"result": "success", "msg": "updated"})
+    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
+        return redirect(url_for("home"))
 
 
 if __name__ == "__main__":
