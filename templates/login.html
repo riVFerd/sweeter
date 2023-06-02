@@ -7,7 +7,7 @@
             name="viewport"
             content="width=device-width, initial-scale=1, shrink-to-fit=no"
     />
-    <link rel="stylesheet" href="../static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" type="text/css">
     <!-- Bulma CSS -->
     <link
             rel="stylesheet"
@@ -24,12 +24,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
 
     <script>
-        function clearInput() {
-            $("#input-username").val("")
-            $("#input-password").val("")
-            $("#input-password2").val("")
-        }
-
         function toggle_sign_up() {
             // $("#sign-up-box").toggleClass("is-hidden")
             $("#div-sign-in-or-up").toggleClass("is-hidden")
@@ -87,6 +81,12 @@
                     }
                 },
             });
+        }
+
+        function clearInputs() {
+            $("#input-username").val("");
+            $("#input-password").val("");
+            $("#input-password2").val("");
         }
 
         function sign_up() {
@@ -206,7 +206,22 @@
         }
     </script>
 </head>
-<body>
+<body class="has-navbar-fixed-top">
+<nav
+        class="navbar is-fixed-top is-white"
+        role="navigation"
+        aria-label="main navigation"
+>
+    <div class="navbar-brand">
+        <a class="navbar-item" href="/">
+            <img src="{{ url_for('static', filename='logo.png') }}"/>
+            <strong
+                    class="is-sparta logo-text"
+            >SWEETER</strong
+            >
+        </a>
+    </div>
+</nav>
 <section class="hero is-white">
     <div
             class="hero-body has-text-centered"
@@ -319,7 +334,7 @@
                             </button>
                             <button
                                     class="level-item button is-sparta is-outlined"
-                                    onclick="clearInput()"
+                                    onclick="clearInputs()"
                             >
                                 Clear
                             </button>
