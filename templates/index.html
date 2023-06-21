@@ -7,6 +7,17 @@
       name="viewport"
       content="width=device-width, initial-scale=1, shrink-to-fit=no"
     />
+    <link
+    rel="icon"
+    href="{{ url_for('static', filename='favicon.ico') }}"
+    type="image/x-icon"
+  />
+  <meta property="og:title" content="Sweeter - the sweetest site" />
+  <meta property="og:description" content="mini project for Web Plus" />
+  <meta
+    property="og:image"
+    content="{{ url_for('static', filename='ogimage.jpg') }}"
+  />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" type="text/css">
     <!-- Bulma CSS -->
     <link
@@ -23,7 +34,12 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
     <script src="{{ url_for('static', filename='myjs.js') }}"></script>
+    <script>
 
+      $(document).ready(function () {
+    get_posts()
+});
+    </script>
   </head>
   <body  class="has-navbar-fixed-top">
     <nav

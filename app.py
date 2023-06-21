@@ -134,12 +134,24 @@ def check_dup():
 
 @app.route("/update_profile", methods=["POST"])
 def save_img():
-    token_receive = request.cookies.get("mytoken")
-    try:
+  token_receive = request.cookies.get("mytoken")
+  try:
         payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
-        # WKita update profil user disini
-        return jsonify({"result": "success", "msg": "Your profile has been updated"})
-    except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
+        username = payload["id"]
+        name_receive = request.form["name_give"]
+        about_receive = request.form["about_give"]
+        new_doc = {"profile_name": name_receive, "profile_info": about_receive}
+        if "file_give" in request.files:
+            file = request.files["file_give"]
+            filename = secure_filename(file.filename)
+            extension = filename.split(".")[-1]
+            file_path = f"profile_pics/{username}.{extension}"
+            file.save("./static/" + file_path)
+            new_doc["profile_pic"] = filename
+            new_doc["profile_pic_real"] = file_path
+        db.users.update_one({"username": payload["id"]}, {"$set": new_doc})
+        return jsonify({"result": "success", "msg": "Profile updated!"})
+  except (jwt.ExpiredSignatureError, jwt.exceptions.DecodeError):
         return redirect(url_for("home"))
 
 
@@ -171,7 +183,13 @@ def get_posts():
     try:
         payload = jwt.decode(token_receive, SECRET_KEY, algorithms=["HS256"])
         # We should fetch the full list of posts here
-        posts = list(db.posts.find({}).sort("date", -1).limit(20))
+        username_receive = request.args.get("username_give")
+        if username_receive == "":
+            posts = list(db.posts.find({}).sort("date", -1).limit(20))  # index.html
+        else:
+            posts = list(
+                db.posts.find({"username": username_receive}).sort("date", -1).limit(20) # user.html
+            )
 
         for post in posts:
             post["_id"] = str(post["_id"])

@@ -3,6 +3,17 @@
 <head>
     <title>Log In | SWEETER</title>
     <meta charset="utf-8"/>
+    <link
+            rel="icon"
+            href="{{ url_for('static', filename='favicon.ico') }}"
+            type="image/x-icon"
+    />
+    <meta property="og:title" content="Sweeter - the sweetest site"/>
+    <meta property="og:description" content="mini project for Web Plus"/>
+    <meta
+            property="og:image"
+            content="{{ url_for('static', filename='ogimage.jpg') }}"
+    />
     <meta
             name="viewport"
             content="width=device-width, initial-scale=1, shrink-to-fit=no"
@@ -27,6 +38,7 @@
         function toggle_sign_up() {
             // $("#sign-up-box").toggleClass("is-hidden")
             $("#div-sign-in-or-up").toggleClass("is-hidden")
+            $("#cancel-btn").toggleClass("is-hidden")
             // $("#btn-check-dup").toggleClass("is-hidden")
             // $("#help-id").toggleClass("is-hidden")
             // $("#help-password").toggleClass("is-hidden")
@@ -328,15 +340,16 @@
                             </button>
                             <button
                                     class="level-item button is-sparta is-outlined"
-                                    onclick="toggle_sign_up()"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                    class="level-item button is-sparta is-outlined"
                                     onclick="clearInputs()"
                             >
                                 Clear
+                            </button>
+                            <button
+                                    id="cancel-btn"
+                                    class="level-item button is-sparta is-outlined is-hidden"
+                                    onclick="toggle_sign_up()"
+                            >
+                                Cancel
                             </button>
                         </nav>
                     </div>
