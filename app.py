@@ -195,6 +195,10 @@ def get_posts():
             post["_id"] = str(post["_id"])
             post["count_heart"] = db.likes.count_documents({"post_id": post["_id"], "type": "heart"})
             post["heart_by_me"] = bool(db.likes.find_one({"post_id": post["_id"], "type": "heart", "username": payload['id']}))
+            post["count_star"] = db.likes.count_documents({"post_id": post["_id"], "type": "star"})
+            post["star_by_me"] = bool(db.likes.find_one({"post_id": post["_id"], "type": "star", "username": payload['id']}))
+            post["count_thumbs-up"] = db.likes.count_documents({"post_id": post["_id"], "type": "thumbs-up"})
+            post["thumbs-up_by_me"] = bool(db.likes.find_one({"post_id": post["_id"], "type": "thumbs-up", "username": payload['id']}))
         return jsonify(
             {
                 "result": "success",
